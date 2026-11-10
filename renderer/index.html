@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:">
+<title>Pano</title>
+<link rel="stylesheet" href="../node_modules/@xterm/xterm/css/xterm.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="ust">
+    <div class="surukle"></div>
+    <div class="baslik"><b>Pano</b><span id="sayim" class="sayim"></span></div>
+    <button id="tasiBtn" class="btn" title="Terminal'de açık Claude oturumlarını Pano'ya al">⇄ Terminal'den taşı</button>
+    <button id="yeniBtn" class="btn ana" title="⌘N">+ Yeni ajan</button>
+  </header>
+
+  <div class="agac-kap" id="agacKap">
+    <section class="agac-alani" id="agacAlani" aria-label="Ajan soy ağacı">
+      <div class="agac-sahne" id="agacSahne">
+        <div class="agac" id="agac">
+          <svg id="oklar" class="oklar" aria-hidden="true"></svg>
+          <div class="agac-icerik" id="agacIcerik"></div>
+        </div>
+      </div>
+    </section>
+    <div class="harita-ipucu" id="haritaIpucu" hidden>Sürükleyerek gez · Sıkıştırarak yakınlaş</div>
+    <div class="yakinlik" role="group" aria-label="Yakınlaştırma">
+      <button class="yk" id="ykEksi" title="Uzaklaştır" aria-label="Uzaklaştır">−</button>
+      <button class="yk yk-oran" id="ykOran" title="%100'e dön">100%</button>
+      <button class="yk" id="ykArti" title="Yakınlaştır" aria-label="Yakınlaştır">+</button>
+      <button class="yk yk-sigdir" id="ykSigdir" title="Hepsini sığdır">Sığdır</button>
+    </div>
+  </div>
+
+  <div class="ayirici" id="ayirici" role="separator" aria-orientation="horizontal" aria-label="Paneli boyutlandır" tabindex="0" title="Sürükle: boyutlandır · Çift tıkla: eski boyuta dön"><span></span></div>
+
+  <section class="terminal-alani" id="terminalAlani">
+    <div class="term-bas" id="termBas">
+      <div class="tb-sol">
+        <span class="nokta" id="tbNokta"></span>
+        <b id="tbAd">—</b>
+        <span class="tb-gorev" id="tbGorev"></span>
+      </div>
+      <div class="seritler" id="seritler" aria-label="Ajanlar"></div>
+      <div class="tb-sag">
+        <span class="tb-klasor" id="tbKlasor"></span>
+        <button class="btn" id="altAjanBtn" title="Seçili ajanın altına yeni ajan aç">+ Alt ajan</button>
+        <button class="btn" id="yenidenBtn">Yeniden başlat</button>
+        <button class="btn tehlike" id="kapatBtn">Ajanı kapat</button>
+        <span class="tb-ayrac"></span>
+        <button class="ikon" id="buyutBtn" title="Tam ekran (⌘⇧F)" aria-label="Terminali tam ekran yap">
+          <svg viewBox="0 0 16 16" id="buyutIkon"><path d="M2 6V2h4M14 6V2h-4M2 10v4h4M14 10v4h-4"/></svg>
+        </button>
+        <button class="ikon" id="gizleBtn" title="Terminali gizle (⌘J)" aria-label="Terminali gizle">
+          <svg viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="terminaller" id="terminaller"></div>
+  </section>
+
+  <button class="alt-cubuk" id="altCubuk" hidden>
+    <span class="nokta" id="acNokta"></span>
+    <span id="acMetin">Terminal gizli</span>
+    <span class="kisayol">Göster · ⌘J</span>
+  </button>
+
+  <div class="ipucu" id="ipucu" role="tooltip" hidden></div>
+
+  <dialog id="tasiDlg" class="genis">
+    <div class="tasi">
+      <div class="tasi-bas">
+        <h2>Terminal'den taşı</h2>
+        <button type="button" class="btn" id="tYenile">Yenile</button>
+      </div>
+      <p class="tasi-not">Seçtiğin oturumlar Terminal'de kapatılır ve Pano'da <b>kaldığı yerden</b> açılır. Konuşma geçmişi olduğu gibi gelir. Terminal pencereleri açık kalır, onları sonra kapatabilirsin.</p>
+      <div class="tasi-liste" id="tListe"></div>
+      <p class="hata" id="tHata"></p>
+      <div class="dlg-btn">
+        <label class="tumu"><input type="checkbox" id="tTumu"> Hepsini seç</label>
+        <button type="button" class="btn" id="tVazgec">Vazgeç</button>
+        <button type="button" class="btn ana" id="tTasi" disabled>Taşı</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="yeniDlg">
+    <form id="yeniForm" method="dialog">
+      <h2>Yeni ajan</h2>
+      <label>Ad <input id="fAd" required placeholder="Z1" maxlength="24" autocomplete="off"></label>
+      <label>Üst ajan <select id="fEbeveyn"></select></label>
+      <label>Görev <textarea id="fGorev" rows="5" placeholder="web-app#202: masaüstünde indirme QR'ı… (boş bırakırsan Claude boş açılır)"></textarea></label>
+      <label>Klasör
+        <span class="klasor-satir"><input id="fKlasor" autocomplete="off"><button type="button" class="btn" id="fKlasorSec">Seç…</button></span>
+      </label>
+      <p class="hata" id="fHata"></p>
+      <div class="dlg-btn">
+        <button type="button" class="btn" id="fVazgec">Vazgeç</button>
+        <button type="submit" class="btn ana">Aç</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="../node_modules/@xterm/xterm/lib/xterm.js"></script>
+  <script src="../node_modules/@xterm/addon-fit/lib/addon-fit.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

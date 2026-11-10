@@ -1,0 +1,32 @@
+#!/bin/bash
+# Pano içindeki Claude ajanlarının kullandığı komut.
+#   pano yeni <AD> "<görev>" [--klasor <yol>]
+#   pano liste
+#   pano gonder <AD> "<mesaj>"
+if [ -z "$PANO_PORT" ] || [ -z "$PANO_JETON" ]; then
+  echo "Bu komut yalnızca Pano uygulamasının içinde açılmış bir ajanda çalışır." >&2; exit 1
+fi
+url="http://127.0.0.1:$PANO_PORT"
+istek() { curl -sS -m 10 -w '\n' -H "X-Pano-Jeton: $PANO_JETON" -H "X-Pano-Ajan: $PANO_AGENT_ID" "$@"; }
+
+case "$1" in
+  yeni)
+    ad="$2"; gorev="$3"; klasor="$PWD"; shift 3 2>/dev/null
+    while [ $# -gt 0 ]; do case "$1" in --klasor) klasor="$2"; shift 2 ;; *) shift ;; esac; done
+    [ -z "$ad" ] && { echo 'Kullanım: pano yeni <AD> "<görev>" [--klasor <yol>]' >&2; exit 1; }
+    istek --data-urlencode "ad=$ad" --data-urlencode "gorev=$gorev" --data-urlencode "klasor=$klasor" "$url/ajan" ;;
+  ekran)
+    istek --data-urlencode "yol=${2:-/tmp/pano.png}" "$url/ekran" ;;
+  liste)
+    istek "$url/ajanlar" ;;
+  gonder)
+    [ -z "$2" ] && { echo 'Kullanım: pano gonder <AD> "<mesaj>"' >&2; exit 1; }
+    istek --data-urlencode "ad=$2" --data-urlencode "mesaj=$3" "$url/gonder" ;;
+  *)
+    cat <<'Y'
+pano yeni <AD> "<görev>" [--klasor <yol>]   Altına yeni bir Claude ajanı açar
+pano liste                                  Ajanları ve durumlarını gösterir
+pano gonder <AD> "<mesaj>"                  Bir ajana mesaj yazar
+Y
+    ;;
+esac
